@@ -36,7 +36,6 @@
             flex-grow: 1;
             padding: 10%;
             
-            
         }
         .hidden {
             display: none;
@@ -66,7 +65,7 @@
     <div class="content">
         <label for="farmaciaSelect">Seleccionar Farmacia:</label>
         <select id="farmaciaSelect" class="form-select" onchange="updateFarmacia()">
-            <option value="Farmacia A">BlueFarma</option>
+            <option value="Farmacia A">BlueFarma/option>
             <option value="Farmacia B">Farmacia Central</option>
             <option value="Farmacia C">Farmacia Providencia</option>
         </select>
@@ -75,7 +74,7 @@
         
         <div id="dashboard" class="section">
             <h2>FarmaInfo</h2>
-            <!-- <p id="dashboardInfo"></p> -->
+            <p id="dashboardInfo"></p>
             <div id="farmaciaKPIs">
                 <!-- Rotación de Inventario -->
                 <div id="rotacion-inventario" class="section">
@@ -224,7 +223,7 @@
 
         function updateFarmacia() {
             selectedFarmacia = document.getElementById('farmaciaSelect').value;
-            // document.getElementById('dashboardInfo').innerText = `Información de ${selectedFarmacia}`;
+            document.getElementById('dashboardInfo').innerText = `Información de ${selectedFarmacia}`;
             document.getElementById('stockInfo').innerText = `Stock de productos en ${selectedFarmacia}`;
             updateStockTable();
         }
@@ -378,7 +377,7 @@
                     labels: ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio'],
                     datasets: [{
                         label: 'Ventas Mensuales',
-                        data: [30, 100, 70, 90, 110, 130],
+                        data: [30, 50, 70, 90, 110, 130],
                         borderColor: '#6f42c1',
                         fill: false
                     }]
