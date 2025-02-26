@@ -15,11 +15,12 @@
             display: flex;
         }
         .sidebar {
-            width: 250px;
-            height: 100vh;
+            position: fixed;
+            min-height: 100vh;
             background: #343a40;
             color: white;
             padding-top: 20px;
+            overflow-y: auto; /* Si tiene muchos elementos, permite scroll dentro del navbar */
         }
         .sidebar a {
             color: white;
@@ -33,7 +34,9 @@
         }
         .content {
             flex-grow: 1;
-            padding: 20px;
+            padding: 10%;
+            
+            
         }
         .hidden {
             display: none;
@@ -57,18 +60,95 @@
         <a onclick="showSection('dashboard')">Dashboard</a>
         <a onclick="showSection('stock')">Stock de Productos</a>
         <a onclick="showSection('ventas')">Ventas y Tendencias</a>
-        <a onclick="showSection('reportes')">Reportes</a>
+        
     </div>
     
     <div class="content">
+        <label for="farmaciaSelect">Seleccionar Farmacia:</label>
+        <select id="farmaciaSelect" class="form-select" onchange="updateFarmacia()">
+            <option value="Farmacia A">BlueFarma</option>
+            <option value="Farmacia B">Farmacia Central</option>
+            <option value="Farmacia C">Farmacia Providencia</option>
+        </select>
+        
         <div class="loader">Cargando...</div>
         
         <div id="dashboard" class="section">
-            <h2>Dashboard Farmacias</h2>
+            <h2>FarmaInfo</h2>
+            <!-- <p id="dashboardInfo"></p> -->
+            <div id="farmaciaKPIs">
+                <!-- Rotación de Inventario -->
+                <div id="rotacion-inventario" class="section">
+                    <h4>Rotación de Inventario</h4>
+                    <div class="chart-container">
+                        <canvas id="rotacionInventarioChart"></canvas>
+                    </div>
+                </div>
+    
+                <!-- Nivel de Stock por Producto -->
+                <div id="nivel-stock" class="section">
+                    <h4>Nivel de Stock por Producto</h4>
+                    <div class="chart-container">
+                        <canvas id="nivelStockChart"></canvas>
+                    </div>
+                </div>
+    
+                <!-- Días de Stock Restantes -->
+                <div id="dias-stock" class="section">
+                    <h4>Días de Stock Restantes</h4>
+                    <div class="chart-container">
+                        <canvas id="diasStockChart"></canvas>
+                    </div>
+                </div>
+    
+                <!-- Productos con Bajo Stock -->
+                <div id="productos-bajo-stock" class="section">
+                    <h4>Productos con Bajo Stock</h4>
+                    <table id="bajoStockTable" class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Producto</th>
+                                <th>Stock Actual</th>
+                                <th>Umbral</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Producto 1</td>
+                                <td>5</td>
+                                <td>10</td>
+                            </tr>
+                            <tr>
+                                <td>Producto 3</td>
+                                <td>7</td>
+                                <td>10</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+    
+                <!-- Ventas por Producto -->
+                <div id="ventas-producto" class="section">
+                    <h4>Ventas por Producto</h4>
+                    <div class="chart-container">
+                        <canvas id="ventasProductoChart"></canvas>
+                    </div>
+                </div>
+    
+                <!-- Tendencia de Ventas -->
+                <div id="tendencia-ventas" class="section">
+                    <h4>Tendencia de Ventas</h4>
+                    <div class="chart-container">
+                        <canvas id="tendenciaVentasChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
         </div>
         
         <div id="stock" class="section hidden">
             <h4>Stock de Productos</h4>
+            <p id="stockInfo"></p>
             <table id="stockTable" class="table table-striped">
                 <thead>
                     <tr>
@@ -83,6 +163,7 @@
         
         <div id="ventas" class="section hidden">
             <h4>Tendencias de Venta</h4>
+            <p id="ventasInfo"></p>
             <div class="chart-container">
                 <canvas id="ventasChart"></canvas>
             </div>
@@ -90,13 +171,76 @@
     </div>
 
     <script>
+        const productos = {
+            "Farmacia A": [
+                { nombre: "Paracetamol", stock: 120, estado: "Disponible" },
+                { nombre: "Ibuprofeno", stock: 80, estado: "Disponible" },
+                { nombre: "Amoxicilina", stock: 50, estado: "Bajo" },
+                { nombre: "Cefalexina", stock: 30, estado: "Bajo" },
+                { nombre: "Vitaminas C", stock: 200, estado: "Disponible" },
+                { nombre: "Pomada para dolores", stock: 15, estado: "Agotado" },
+                { nombre: "Aspirina", stock: 200, estado: "Disponible" },
+                { nombre: "Antigripal", stock: 60, estado: "Disponible" },
+                { nombre: "Jabón Antiséptico", stock: 150, estado: "Disponible" },
+                { nombre: "Desinfectante", stock: 40, estado: "Bajo" },
+            ],
+            "Farmacia B": [
+                { nombre: "Ibuprofeno", stock: 150, estado: "Disponible" },
+                { nombre: "Antigripal", stock: 100, estado: "Disponible" },
+                { nombre: "Antiacido", stock: 80, estado: "Disponible" },
+                { nombre: "Jabón Antiséptico", stock: 200, estado: "Disponible" },
+                { nombre: "Vitamina E", stock: 50, estado: "Bajo" },
+                { nombre: "Tónico", stock: 40, estado: "Bajo" },
+                { nombre: "Pomada para dolores", stock: 10, estado: "Agotado" },
+                { nombre: "Aceite de oliva", stock: 130, estado: "Disponible" },
+                { nombre: "Aspirina", stock: 100, estado: "Disponible" },
+                { nombre: "Cefalexina", stock: 60, estado: "Disponible" },
+            ],
+            "Farmacia C": [
+                { nombre: "Aspirina", stock: 80, estado: "Disponible" },
+                { nombre: "Paracetamol", stock: 40, estado: "Bajo" },
+                { nombre: "Cefalexina", stock: 100, estado: "Disponible" },
+                { nombre: "Antigripal", stock: 30, estado: "Bajo" },
+                { nombre: "Pomada para dolores", stock: 25, estado: "Bajo" },
+                { nombre: "Amoxicilina", stock: 200, estado: "Disponible" },
+                { nombre: "Vitamina C", stock: 120, estado: "Disponible" },
+                { nombre: "Ajo", stock: 80, estado: "Disponible" },
+                { nombre: "Aceite esencial", stock: 70, estado: "Bajo" },
+                { nombre: "Desinfectante", stock: 50, estado: "Disponible" },
+            ]
+        };
+
+        let selectedFarmacia = document.getElementById('farmaciaSelect').value;
+
         function showSection(sectionId) {
             document.querySelectorAll('.section').forEach(section => section.classList.add('hidden'));
             document.querySelector('.loader').style.display = 'block';
             setTimeout(() => {
                 document.querySelector('.loader').style.display = 'none';
                 document.getElementById(sectionId).classList.remove('hidden');
+                updateFarmacia();
             }, 500);
+        }
+
+        function updateFarmacia() {
+            selectedFarmacia = document.getElementById('farmaciaSelect').value;
+            // document.getElementById('dashboardInfo').innerText = `Información de ${selectedFarmacia}`;
+            document.getElementById('stockInfo').innerText = `Stock de productos en ${selectedFarmacia}`;
+            updateStockTable();
+        }
+
+        function updateStockTable() {
+            const stockBody = document.getElementById('stockBody');
+            stockBody.innerHTML = '';
+            productos[selectedFarmacia].forEach(producto => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${producto.nombre}</td>
+                    <td>${producto.stock}</td>
+                    <td>${producto.estado}</td>
+                `;
+                stockBody.appendChild(row);
+            });
         }
 
         document.addEventListener('DOMContentLoaded', function() {
@@ -118,7 +262,187 @@
                     maintainAspectRatio: false
                 }
             });
+            updateFarmacia();
         });
     </script>
+        <script>
+            // Cargar los gráficos
+            let ctxRotacionInventario = document.getElementById('rotacionInventarioChart').getContext('2d');
+            new Chart(ctxRotacionInventario, {
+                type: 'bar',
+                data: {
+                    labels: ['Producto 1', 'Producto 2', 'Producto 3', 'Producto 4', 'Producto 5'],
+                    datasets: [{
+                        label: 'Rotación de Inventario',
+                        data: [5, 8, 3, 7, 10],
+                        backgroundColor: ['#007bff', '#28a745', '#ffc107', '#dc3545', '#6f42c1'],
+                        borderColor: ['#0056b3', '#218838', '#e0a800', '#c82333', '#5a1a99'],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+    
+            let ctxNivelStock = document.getElementById('nivelStockChart').getContext('2d');
+            new Chart(ctxNivelStock, {
+                type: 'bar',
+                data: {
+                    labels: ['Farmacia A', 'Farmacia B', 'Farmacia C'],
+                    datasets: [
+                        {
+                            label: 'Producto 1',
+                            data: [100, 150, 120],
+                            backgroundColor: '#007bff',
+                            borderColor: '#0056b3',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'Producto 2',
+                            data: [80, 90, 70],
+                            backgroundColor: '#28a745',
+                            borderColor: '#218838',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'Producto 3',
+                            data: [50, 60, 40],
+                            backgroundColor: '#ffc107',
+                            borderColor: '#e0a800',
+                            borderWidth: 1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+    
+            let ctxDiasStock = document.getElementById('diasStockChart').getContext('2d');
+            new Chart(ctxDiasStock, {
+                type: 'line',
+                data: {
+                    labels: ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio'],
+                    datasets: [{
+                        label: 'Días de Stock Restantes',
+                        data: [30, 25, 20, 15, 10, 5],
+                        borderColor: '#ff5733',
+                        fill: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+    
+            $(document).ready(function() {
+                $('#bajoStockTable').DataTable();
+            });
+    
+            let ctxVentasProducto = document.getElementById('ventasProductoChart').getContext('2d');
+            new Chart(ctxVentasProducto, {
+                type: 'bar',
+                data: {
+                    labels: ['Farmacia A', 'Farmacia B', 'Farmacia C'],
+                    datasets: [
+                        {
+                            label: 'Producto 1',
+                            data: [200, 300, 250],
+                            backgroundColor: '#007bff',
+                            borderColor: '#0056b3',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'Producto 2',
+                            data: [150, 180, 160],
+                            backgroundColor: '#28a745',
+                            borderColor: '#218838',
+                            borderWidth: 1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+    
+            let ctxTendenciaVentas = document.getElementById('tendenciaVentasChart').getContext('2d');
+            new Chart(ctxTendenciaVentas, {
+                type: 'line',
+                data: {
+                    labels: ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio'],
+                    datasets: [{
+                        label: 'Ventas Mensuales',
+                        data: [30, 100, 70, 90, 110, 130],
+                        borderColor: '#6f42c1',
+                        fill: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+            document.addEventListener("DOMContentLoaded", function () {
+    function ajustarTamanioGraficos() {
+        let contenedores = document.querySelectorAll(".chart-container");
+        contenedores.forEach(container => {
+            container.style.height = "400px"; // Ajusta la altura según sea necesario
+        });
+    }
+
+    ajustarTamanioGraficos();
+
+    window.addEventListener("resize", ajustarTamanioGraficos);
+
+    function cargarDatos(farmacia) {
+        let datos = {
+            "Farmacia A": {
+                rotacionInventario: [5, 8, 3, 7, 10],
+                nivelStock: [100, 150, 120],
+                ventasProducto: [200, 300, 250]
+            },
+            "Farmacia B": {
+                rotacionInventario: [4, 7, 5, 6, 9],
+                nivelStock: [90, 140, 110],
+                ventasProducto: [180, 290, 240]
+            },
+            "Farmacia C": {
+                rotacionInventario: [6, 9, 4, 8, 11],
+                nivelStock: [110, 160, 130],
+                ventasProducto: [220, 310, 270]
+            }
+        };
+
+        return datos[farmacia];
+    }
+
+    function actualizarGraficos(farmacia) {
+        let datos = cargarDatos(farmacia);
+
+        rotacionInventarioChart.data.datasets[0].data = datos.rotacionInventario;
+        rotacionInventarioChart.update();
+
+        nivelStockChart.data.datasets.forEach((dataset, index) => {
+            dataset.data = datos.nivelStock;
+        });
+        nivelStockChart.update();
+
+        ventasProductoChart.data.datasets.forEach((dataset, index) => {
+            dataset.data = datos.ventasProducto;
+        });
+        ventasProductoChart.update();
+    }
+
+    document.getElementById("farmaciaSelect").addEventListener("change", function () {
+        actualizarGraficos(this.value);
+    });
+});
+        </script>
 </body>
 </html>
